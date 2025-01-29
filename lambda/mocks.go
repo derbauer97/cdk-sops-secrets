@@ -112,7 +112,15 @@ type PutSecretValueInputNotSecure struct {
 type putSecretValueInputNotSecure secretsmanager.PutSecretValueInput
 
 func (m *SecretsManagerMockClient) PutSecretValue(input *secretsmanager.PutSecretValueInput) (*secretsmanager.PutSecretValueOutput, error) {
-	versionId := fmt.Sprintf("%x", sha256.Sum256([]byte(*input.SecretString)))
+	var versionId string
+	if input.SecretString != nil {
+		versionId = fmt.Sprintf("%x", sha256.Sum256([]byte(*input.SecretString)))
+	} else {
+		versionId = fmt.Sprintf("%x", sha256.Sum256(input.SecretBinary))
+		if len(input.SecretBinary) > 16 {
+			input.SecretBinary = append(input.SecretBinary[:8], input.SecretBinary[len(input.SecretBinary)-8:]...)
+		}
+	}
 
 	snaps.MatchSnapshot(m.t, ">>>SecretsManagerMockClient.PutSecretValue.Input", putSecretValueInputNotSecure(*input))
 

@@ -107,8 +107,18 @@ const sopsComplexSecretYAMLasJSONFlat = new SopsSecret(
   },
 );
 
-new SopsSecret(stack, 'SopsBinaryAsBinary', {
+new SopsSecret(stack, 'SopsBinaryAsPlainstring', {
   sopsFilePath: 'test-secrets/binary/sopsfile.enc-age.binary',
+  uploadType: UploadType.ASSET,
+  // see test-secrets/README.md for further information regarding the test file
+  sopsAgeKey: SecretValue.unsafePlainText(
+    'AGE-SECRET-KEY-1EFUWJ0G2XJTJFWTAM2DGMA4VCK3R05W58FSMHZP3MZQ0ZTAQEAFQC6T7T3',
+  ),
+});
+
+new SopsSecret(stack, 'SopsBinaryAsBinary', {
+  sopsFilePath: 'test-secrets/binary/samplebin.enc-age',
+  sopsFileFormat: 'binary',
   uploadType: UploadType.ASSET,
   // see test-secrets/README.md for further information regarding the test file
   sopsAgeKey: SecretValue.unsafePlainText(

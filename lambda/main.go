@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
 	runtime "github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
@@ -85,11 +86,21 @@ func decryptSopsFileContent(content []byte, format string) (data []byte, err err
 }
 
 func (a AWS) updateSecret(sopsHash string, secretArn string, secretContent []byte) (data *secretsmanager.PutSecretValueOutput, err error) {
-	secretContentString := string(secretContent)
-	input := &secretsmanager.PutSecretValueInput{
-		SecretId:           &secretArn,
-		SecretString:       &secretContentString,
-		ClientRequestToken: &sopsHash,
+
+	var input *secretsmanager.PutSecretValueInput
+	if isHumanReadable(secretContent) {
+		secretContentString := string(secretContent)
+		input = &secretsmanager.PutSecretValueInput{
+			SecretId:           &secretArn,
+			SecretString:       &secretContentString,
+			ClientRequestToken: &sopsHash,
+		}
+	} else {
+		input = &secretsmanager.PutSecretValueInput{
+			SecretId:           &secretArn,
+			SecretBinary:       secretContent,
+			ClientRequestToken: &sopsHash,
+		}
 	}
 	secretResp, secretErr := a.secretsmanager.PutSecretValue(input)
 	if secretErr != nil {
@@ -287,7 +298,6 @@ func (a AWS) syncSopsToSecretsmanager(ctx context.Context, event cfn.Event) (phy
 				return tempArn, nil, fmt.Errorf("failed to convert to YAML:\n%v", err)
 			}
 		}
-
 		if resourceProperties.ResourceType == "SECRET" {
 			updateSecretResp, err := a.updateSecret(sopsHash, resourceProperties.SecretARN, decryptedContent)
 			if err != nil {
@@ -392,6 +402,19 @@ func toYAML(in any) ([]byte, error) {
 		return nil, err
 	}
 	return ret, nil
+}
+
+func isHumanReadable(data []byte) bool {
+	for _, b := range data {
+		if b == 0 { // Early exit if null byte is found
+			return false
+		}
+		r := rune(b)
+		if !unicode.IsPrint(r) && !unicode.IsSpace(r) {
+			return false
+		}
+	}
+	return true
 }
 
 func stringifyValues(input any) (interface{}, string, error) {

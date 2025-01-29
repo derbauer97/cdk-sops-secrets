@@ -71,3 +71,45 @@ func Test_DecryptSopsFileContent(t *testing.T) {
 		t.Error(diff)
 	}
 }
+func Test_IsHumanReadable(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []byte
+		expected bool
+	}{
+		{
+			name:     "Human readable string",
+			input:    []byte("Hello, World!"),
+			expected: true,
+		},
+		{
+			name:     "String with non-printable characters",
+			input:    []byte("Hello\x00World"),
+			expected: false,
+		},
+		{
+			name:     "String with only spaces",
+			input:    []byte("     "),
+			expected: true,
+		},
+		{
+			name:     "Empty string",
+			input:    []byte(""),
+			expected: true,
+		},
+		{
+			name:     "String with null byte",
+			input:    []byte{0},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isHumanReadable(tt.input)
+			if result != tt.expected {
+				t.Errorf("isHumanReadable(%q) = %v; expected %v", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
